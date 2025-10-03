@@ -1,34 +1,28 @@
-name: Update EPG
+name: Daily EPG Download
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Run every 6 hours
+    # Run once per day at 00:00 UTC
+    - cron: '0 0 * * *'
+  # Allow manual triggering
   workflow_dispatch:
 
 jobs:
-  update-epg:
+  download-epg:
     runs-on: ubuntu-latest
-    
-    # Add this permissions section
-    permissions:
-      contents: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        # This is crucial - use the automatic token
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Generate EPG file
+      
+    - name: Download EPG file
       run: |
-        # Your commands to generate epg.xml
-        echo "Your EPG generation commands here"
-
-    - name: Commit and push changes
+        wget -O epg.xml "https://tvpass.org/epg.xml"
+        
+    - name: Commit and push if changed
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add epg.xml
-        git diff --quiet && git diff --staged --quiet || git commit -m "Update EPG file - $(date)"
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update EPG data - $(date)"
         git push
