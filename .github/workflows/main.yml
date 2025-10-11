@@ -17,7 +17,7 @@ jobs:
       
     - name: Download EPG file
       run: |
-        wget -O epg.xml "https://tvpass.org/epg.xml"
+        curl -o epg.xml "https://tvpass.org/epg.xml" --connect-timeout 30 --max-time 60
         
     - name: Commit and push if changed
       run: |
