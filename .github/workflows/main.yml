@@ -2,9 +2,7 @@ name: Daily EPG Download
 
 on:
   schedule:
-    # Run once per day at 00:00 UTC
     - cron: '0 */4 * * *'
-  # Allow manual triggering
   workflow_dispatch:
 
 jobs:
@@ -18,14 +16,36 @@ jobs:
     - name: Download EPG file
       run: |
         curl -o epg.xml "https://tvpass.org/epg.xml" --connect-timeout 30 --max-time 60
+        echo "Downloaded file size: $(wc -c < epg.xml) bytes"
         
     - name: Create compressed EPG with maximum compression
       run: |
-        # Use gzip with maximum compression level (9)
-        gzip -9 -k epg.xml
-        echo "Compressed file created: epg.xml.gz"
-        echo "Original size: $(du -h epg.xml | cut -f1)"
-        echo "Compressed size: $(du -h epg.xml.gz | cut -f1)"
+        # Check if file exists and has content
+        if [ ! -f epg.xml ]; then
+          echo "ERROR: epg.xml does not exist!"
+          exit 1
+        fi
+        
+        if [ ! -s epg.xml ]; then
+          echo "ERROR: epg.xml is empty!"
+          exit 1
+        fi
+        
+        echo "File exists with $(wc -l < epg.xml) lines"
+        
+        # Create compressed version
+        gzip -9 -c epg.xml > epg.xml.gz
+        
+        # Verify compression worked
+        if [ ! -f epg.xml.gz ]; then
+          echo "ERROR: epg.xml.gz was not created!"
+          exit 1
+        fi
+        
+        echo "SUCCESS: Compressed file created"
+        echo "Original: $(wc -c < epg.xml) bytes"
+        echo "Compressed: $(wc -c < epg.xml.gz) bytes"
+        ls -la *.xml*
         
     - name: Commit and push if changed
       run: |
@@ -33,4 +53,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add epg.xml epg.xml.gz
         git diff --quiet && git diff --staged --quiet || git commit -m "Update EPG data - $(date)"
-        git push
+        git push 
