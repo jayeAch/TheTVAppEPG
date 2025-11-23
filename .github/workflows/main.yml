@@ -19,10 +19,18 @@ jobs:
       run: |
         curl -o epg.xml "https://tvpass.org/epg.xml" --connect-timeout 30 --max-time 60
         
+    - name: Create compressed EPG with maximum compression
+      run: |
+        # Use gzip with maximum compression level (9)
+        gzip -9 -k epg.xml
+        echo "Compressed file created: epg.xml.gz"
+        echo "Original size: $(du -h epg.xml | cut -f1)"
+        echo "Compressed size: $(du -h epg.xml.gz | cut -f1)"
+        
     - name: Commit and push if changed
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add epg.xml
+        git add epg.xml epg.xml.gz
         git diff --quiet && git diff --staged --quiet || git commit -m "Update EPG data - $(date)"
         git push
