@@ -13,7 +13,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Download EPG XML
       run: |
         # Download and overwrite the epg.xml file
@@ -32,24 +34,11 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add epg.xml
-        git diff --staged --quiet || git commit -m "Update EPG data [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
-        git push        gzip -9 -c epg.xml > epg.xml.gz
         
-        # Verify compression worked
-        if [ ! -f epg.xml.gz ]; then
-          echo "ERROR: epg.xml.gz was not created!"
-          exit 1
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update EPG data"
+          git push
         fi
-        
-        echo "SUCCESS: Compressed file created"
-        echo "Original: $(wc -c < epg.xml) bytes"
-        echo "Compressed: $(wc -c < epg.xml.gz) bytes"
-        ls -la *.xml*
-        
-    - name: Commit and push if changed
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add epg.xml epg.xml.gz
-        git diff --quiet && git diff --staged --quiet || git commit -m "Update EPG data - $(date)"
-        git push 
