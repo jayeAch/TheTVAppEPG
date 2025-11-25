@@ -18,27 +18,32 @@ jobs:
         
     - name: Download EPG XML
       run: |
-        # Download and overwrite the epg.xml file
-        curl -s -L -o "epg.xml" "https://tvpass.org/epg.xml"
+        # Download the EPG XML file
+        echo "Downloading EPG XML from https://tvpass.org/epg.xml..."
+        curl -s -L -o epg.xml "https://tvpass.org/epg.xml"
         
-        # Check if download was successful
-        if [ -s "epg.xml" ]; then
-          echo "✅ EPG XML downloaded successfully"
+        # Verify the file was created
+        if [ -f "epg.xml" ]; then
+          echo "✅ File created successfully: epg.xml"
+          echo "File size: $(wc -c < epg.xml) bytes"
+          echo "First 100 characters:"
+          head -c 100 epg.xml
         else
-          echo "❌ Failed to download EPG XML"
+          echo "❌ Failed to create epg.xml file"
           exit 1
         fi
         
-    - name: Commit and push if changes
+    - name: Commit and push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add epg.xml
         
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
+        # Check if there are changes
+        if ! git diff --cached --quiet; then
           git commit -m "Update EPG data"
           git push
+          echo "✅ Changes committed and pushed"
+        else
+          echo "ℹ️ No changes to commit"
         fi
