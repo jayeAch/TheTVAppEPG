@@ -1,9 +1,10 @@
-name: Daily EPG Download
+name: Download EPG XML
 
 on:
   schedule:
-    - cron: '0 */4 * * *'
-  workflow_dispatch:
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   download-epg:
@@ -13,28 +14,26 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download EPG file
+    - name: Download EPG XML
       run: |
-        curl -o epg.xml "https://tvpass.org/epg.xml" --connect-timeout 30 --max-time 60
-        echo "Downloaded file size: $(wc -c < epg.xml) bytes"
+        # Download and overwrite the epg.xml file
+        curl -s -L -o "epg.xml" "https://tvpass.org/epg.xml"
         
-    - name: Create compressed EPG with maximum compression
-      run: |
-        # Check if file exists and has content
-        if [ ! -f epg.xml ]; then
-          echo "ERROR: epg.xml does not exist!"
+        # Check if download was successful
+        if [ -s "epg.xml" ]; then
+          echo "✅ EPG XML downloaded successfully"
+        else
+          echo "❌ Failed to download EPG XML"
           exit 1
         fi
         
-        if [ ! -s epg.xml ]; then
-          echo "ERROR: epg.xml is empty!"
-          exit 1
-        fi
-        
-        echo "File exists with $(wc -l < epg.xml) lines"
-        
-        # Create compressed version
-        gzip -9 -c epg.xml > epg.xml.gz
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add epg.xml
+        git diff --staged --quiet || git commit -m "Update EPG data [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
+        git push        gzip -9 -c epg.xml > epg.xml.gz
         
         # Verify compression worked
         if [ ! -f epg.xml.gz ]; then
